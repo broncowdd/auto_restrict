@@ -54,4 +54,4 @@ if you want to secure a script's URL with $_GET commands:
 - add  <?php include('auto_restrict.php'); ?> in the destination page 
 
 
-To create a logout link, just add "?deconnexion=ok" at the end (the target link must include auto_restrict, of course ^^).
+To create a logout link, just add "?logout=ok" at the end (the target link must include auto_restrict, of course ^^).
