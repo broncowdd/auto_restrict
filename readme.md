@@ -1,8 +1,9 @@
-Auto_restrict
+#Auto_restrict
 
 
-(engish version below)(at least a poor one ;-)
+##(engish version below)(at least a poor one ;-)
 
+##Info
 Un simple script à inclure dans une page ou un script php pour en sécuriser l'accès.
 - gestion de la création de login/passe lors de la première connexion
 - option "rester connecté"
@@ -10,6 +11,7 @@ Un simple script à inclure dans une page ou un script php pour en sécuriser l'
 - tokens pour sécuriser les envois de données $_POST et $_GET.
 - gestion transparente du bannissement d'IP lors de tentatives frauduleuses (login/passe faux, referrer erroné ou problème de token)
 
+##Utilisation
 Ajouter <?php include('auto_restrict.php'); ?> à une page et son accès est verrouillé.
 
 On peut ainsi interdire l'accès à des pages de configuration par exemple.
@@ -31,7 +33,7 @@ Pour créer un lien permettant de se déconnecter, ajouter simplement "?deconnex
 
 
 
-
+##Information
 A single script to include in a php page to secure the access.
 - login/pass creation on first connection
 - option "stay connected"
@@ -39,6 +41,7 @@ A single script to include in a php page to secure the access.
 - tokens to secure the forms and the $_POST/$_GET data
 - IP bannishment to avoid bruteforcing
 
+## Use
 Just add  <?php include('auto_restrict.php'); ?> in your script and the access is locked.
 You can lock the access to an admin pge, a configuration script etc.
 
