@@ -16,10 +16,9 @@
 	 *   - referrer errors (same domain)
 	 *   - auto ban IP and (auto unban)
 	 *   - tokens to secure post and get forms (just add <?php newToken(); ?> to the form or <?php sameToken();?> to repeat a previously generated token, in case of various forms in a same page)
-	 * 	 - easyly secure sensitive actions adding admin password in your form (just add <?php adminPassword(); ?>, auto_restrict will exit if password is not correct)
+	 *   - easyly secure sensitive actions adding admin password in your form (just add <?php adminPassword(); ?>, auto_restrict will exit if password is not correct)
 	 * ToDo:
 	 *   - secure post and get data
-	 *   - add function to ask password for sensitive/superadmin actions...
 	 *   - add a log connection file
 	 *   
 	 *   
