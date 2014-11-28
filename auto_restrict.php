@@ -1,10 +1,27 @@
-﻿<?php 
+<?php 
 
 	/**
 	 * auto_restrict
 	 * @author bronco@warriordudimanche.com / www.warriordudimanche.net
 	 * @copyright open source and free to adapt (keep me aware !)
-	 * @version 3.0 - version mono utilisateur
+	 * @version 3.1 - one user only version / version mono utilisateur
+	 *   
+	 * This script locks a page's access  
+	 * Just include it in the page you want to lock  
+	 * It does all for you:  
+	 *   - login/pass creation
+	 *   - auto redirect to login form
+	 *   - session's expiration
+	 *   - login & logout (to logout, add ?logout $_GET var)
+	 *   - referrer errors (same domain)
+	 *   - auto ban IP and (auto unban)
+	 *   - tokens to secure post and get forms (just add <?php newToken(); ?> to the form or <?php sameToken();?> to repeat a previously generated token, in case of various forms in a same page)
+	 * 	 - easyly secure sensitive actions adding admin password in your form (just add <?php adminPassword(); ?>, auto_restrict will exit if password is not correct)
+	 * ToDo:
+	 *   - secure post and get data
+	 *   - add function to ask password for sensitive/superadmin actions...
+	 *   - add a log connection file
+	 *   
 	 *   
 	 * Verrouille l'accès à une page
 	 * Il suffit d'inclure ce fichier pour bloquer l'accès...
@@ -14,25 +31,26 @@
 	 * gestion du bannissement des adresses ip en cas de bruteforcing ou de referer anormal
 	 * gestion des tokens de sécurisation à ajouter aux forms en une commande <?php newToken();?>; le script se charge seul de vérifier le token
 	 * génération aléatoire de la clé de cryptage
+	 * sécurisation par mot de passe sur les actions sensibles (il suffit d'ajouter <?php adminPassword(); ?> à un formulaire pour qu'auto_restrict bloque en cas de mauvais mot de passe)
 	 *
 	 * Améliorations eventuelles:
-	 * ajouter la sécurisation du $_POST 
+	 * ajouter la sécurisation du $_POST/$_GET ?
+	 * ajouter un fichier log de connexion
 	 * 
 	*/	
 	session_start();
-
 	// ------------------------------------------------------------------
-	// configuration	
+	// default config
 	// ------------------------------------------------------------------
+	// you can modify this config before the include('auto_restrict.php');
 	if (!isset($auto_restrict['error_msg'])){					$auto_restrict['error_msg']='Erreur - impossible de se connecter.';}// utilisé si on ne veut pas rediriger
 	if (!isset($auto_restrict['cookie_name'])){					$auto_restrict['cookie_name']='auto_restrict';}// nom du cookie
 	if (!isset($auto_restrict['session_expiration_delay'])){	$auto_restrict['session_expiration_delay']=1;}//minutes
-	if (!isset($auto_restrict['cookie_expiration_delay'])){		$auto_restrict['cookie_expiration_delay']=360;}//days
+	if (!isset($auto_restrict['cookie_expiration_delay'])){		$auto_restrict['cookie_expiration_delay']=30;}//days
 	if (!isset($auto_restrict['IP_banned_expiration_delay'])){	$auto_restrict['IP_banned_expiration_delay']=90;}//seconds
 	if (!isset($auto_restrict['max_login_fails'])){				$auto_restrict['max_login_fails']=5;}
 	if (!isset($auto_restrict['just_die_on_errors'])){			$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of banished ip or referer problem;
-	if (!isset($auto_restrict['tokens_expiration_delay'])){		$auto_restrict['tokens_expiration_delay']=60;}//seconds
-	if (!isset($auto_restrict['token_file_size_limit'])){		$auto_restrict['token_file_size_limit']=1000;}
+	if (!isset($auto_restrict['tokens_expiration_delay'])){		$auto_restrict['tokens_expiration_delay']=300;}//seconds
 	if (!isset($auto_restrict['use_GET_tokens_too'])){			$auto_restrict['use_GET_tokens_too']=true;}
 	if (!isset($auto_restrict['use_ban_IP_on_token_errors'])){	$auto_restrict['use_ban_IP_on_token_errors']=true;}
 	if (!isset($auto_restrict['redirect_error'])){				$auto_restrict['redirect_error']='index.php';}// si précisé, pas de message d'erreur
@@ -42,62 +60,74 @@
 	
 	
 	// ------------------------------------------------------------------
-	// sécurisation du passe: procédure astucieuse de JérômeJ (http://www.olissea.com/)
+	// we create login pass and secure it, thanks to JérômeJ (http://www.olissea.com/)
 	// ------------------------------------------------------------------
+	// handles user login creation process 
+	// creates pass.php with secured login pass data
 	if(file_exists('pass.php')) include('pass.php');
 	if(!isset($auto_restrict['pass'])){
-		if(isset($_POST['pass'])&&isset($_POST['login'])&&$_POST['pass']!=''&&$_POST['login']!=''){ # Création du fichier pass.php
+		if(isset($_POST['pass'])&&isset($_POST['login'])&&$_POST['pass']!=''&&$_POST['login']!=''){ 
 			$salt = md5(uniqid('', true));
-			$auto_restrict['encryption_key']=md5(uniqid('', true));// clé pour le cryptage de la chaine de vérification
+			$auto_restrict['encryption_key']=md5(uniqid('', true));
 	
 			file_put_contents('pass.php', '<?php $auto_restrict["login"]="'.$_POST['login'].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($salt,true).'; $auto_restrict["pass"] = '.var_export(hash('sha512', $salt.$_POST['pass']),true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "banned_ip_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";?>');
 			include('login_form.php');exit();
 		}
-		else{ # On affiche un formulaire invitant à rentrer le mdp puis on exit le script
+		else{ 
 			include('login_form.php');exit();
 		}
 	}
 	// ------------------------------------------------------------------
-	// chargement des tokens & ip bannies
+	// load banned ip
 	// ------------------------------------------------------------------
 	if (is_file($auto_restrict["banned_ip_filename"])){include($auto_restrict["banned_ip_filename"]);}
-	if (is_file($auto_restrict["tokens_filename"])){include($auto_restrict["tokens_filename"]);}
 	// ------------------------------------------------------------------
 
+
+
 	// ------------------------------------------------------------------
-	// gestion de post pour demande de connexion
-	// si un utilisateur tente de se loguer, on gère ici
+	// user tries to login
 	// ------------------------------------------------------------------	
 	if (isset($_POST['login'])&&isset($_POST['pass'])){
 		log_user($_POST['login'],$_POST['pass']);
 		if (isset($_POST['cookie'])){setcookie($auto_restrict['cookie_name'],sha1($_SERVER['HTTP_USER_AGENT']),time()+$auto_restrict['cookie_expiration_delay']*1440);}
 	}
 	// ------------------------------------------------------------------
-	// demande de deco via la variable get 'deconnexion'
+	// user wants to logout (?logout $_GET var)
 	// ------------------------------------------------------------------	
-	if (isset($_GET['deconnexion'])){log_user('dis','connect');}
+	if (isset($_GET['deconnexion'])||isset($_GET['logout'])){log_user('dis','connect');}
 	// ------------------------------------------------------------------	
 	// ------------------------------------------------------------------	
-	// si pas de demande de connexion on verifie les vars de session
-	// le referer, l'ip,
-	// et la duree d'inactivité de la session
-	// si probleme,on include un form de login (ou on arrête le script).
+	// if here, there's no login/logout process.
+	// Check referrer, ip
+	// session duration...
+	// on problem, out !
 	// ------------------------------------------------------------------
 	if (!is_ok()){session_destroy();include('login_form.php');exit();} 
 	// ------------------------------------------------------------------
 
-	clearOldTokens();
+	// ------------------------------------------------------------------
+	// if here, there was no security problem.
+	// Now, if there is an admin password post data,
+	// it means that the submitted form is a secured one:
+	// check if password is correct (if not => ban ip and stop here)
+	// ------------------------------------------------------------------	
 
+	if (isset($_POST['admin_password'])){
+		$pass=hash('sha512', $auto_restrict["salt"].$_POST['admin_password']);
+		if ($auto_restrict['pass']!=$pass){
+			add_banned_ip();
+			death('The admin password is wrong... too bad !');
+		}
+		
+	} 
 	
 
 
 
-
-
-
 	// ------------------------------------------------------------------	
-	// fonctions de cryptage 
-	// récupérées sur http://www.info-3000.com/phpmysql/cryptagedecryptage.php
+	// crypt functions 
+	// form http://www.info-3000.com/phpmysql/cryptagedecryptage.php
 	// ------------------------------------------------------------------
 	function GenerationCle($Texte,$CleDEncryptage) 
 	  { 
@@ -145,7 +175,6 @@
 	// ------------------------------------------------------------------
 
 	function id_user(){
-		// retourne une chaine identifiant l'utilisateur que l'on comparera par la suite
 		$id=$_SERVER['REMOTE_ADDR'];
 		$id.='-'.$_SERVER['HTTP_USER_AGENT'];
 		$id.='-'.session_id();
@@ -155,8 +184,8 @@
 	
 
 	function is_ok(){
-		// vérifie et compare les variables de session
-		// en cas de problème on sort/redirige en détruisant la session
+		// check session vars
+		// in case of problem, destroy session and redirect
 		global $auto_restrict;
 		$expired=false;
 		
@@ -174,8 +203,8 @@
 		$id=id_user();
 		if ($sid!=$id || $expired==true){// problème d'identité
 			return false;
-		}else{ // tout va bien
-			//on redonne un délai à la session
+		}else{ // all fine
+			//session can survive a bit more ^^
 			$_SESSION['expire']=time()+(60*$auto_restrict['session_expiration_delay']);
 			return true;
 		}
@@ -184,7 +213,7 @@
 	function death($msg="Don't try to be so clever !"){global $auto_restrict;if ($auto_restrict['just_die_on_errors']){die('<p class="fatal_error">'.$msg.'</p>');}else{return false;}}
 	
 	function log_user($login_donne,$pass_donne){
-		//cree les variables de session
+		// create session vars
 		global $auto_restrict;
 		if ($auto_restrict['login']===$login_donne && $auto_restrict['pass']===hash('sha512', $auto_restrict["salt"].$pass_donne)){
 			$_SESSION['id_user']=Crypte(id_user(),$auto_restrict['encryption_key']);
@@ -228,9 +257,9 @@
 	// ------------------------------------------------------------------
 	// TOKENS 
 	// ------------------------------------------------------------------
+	// return true if token situation is ok
 	function checkToken(){
-		global $auto_restrict;
-		$ID=sha1(id_user());		
+		global $auto_restrict;	
 		if(empty($_POST)&&empty($_GET)){return true;}// no post or get data, no need of a token
 
 		if (// from login form, no need of a token
@@ -239,15 +268,24 @@
 			count($_POST)==3&&isset($_POST['login'])&&isset($_POST['pass'])&&isset($_POST['cookie'])
 		){return true;} 
 
+		// SESSION token too old ? out ! (but no ip_ban)
+		if ($_SESSION['token_expiration_time']<@date('U')){ 
+			return false;
+		}
+
 		// secure $_POST with token
 		if (!empty($_POST)){
 			if (!isset($_POST['token'])){// no token given ? get out !
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
 				return false;
 			}
-			$token=$_POST['token'];
-			if (!isset($auto_restrict['tokens'][$ID][$token])){
+			if (!isset($_SESSION['token'])){// Problem with session token ? get out !
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
+				return false;
+			}
+			if ($_SESSION['token']!=$_POST['token']){// tokens are different ? GET OUT !
+				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
+				var_dump($_SESSION);var_dump($_POST);exit('3');
 				return false;
 			}
 		}
@@ -259,67 +297,52 @@
 				return false;
 			}
 			$token=$_GET['token'];
-			if (!isset($auto_restrict['tokens'][$ID][$token])){
+			if (!isset($_SESSION['token'])){
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
 				return false;
 			}
 		}
 
-		if (!isset($auto_restrict['tokens'][$ID][$token])){return false;}// no token for this action
-		if ($auto_restrict['tokens'][$ID][$token]<@date('U')){ // token too old
-			//remove token from list
-			unset($auto_restrict['tokens'][$ID][$token]);
-			saveTokens();
-			if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
-			unset($auto_restrict['tokens'][$ID][$token]);
-			saveTokens();
-			return false;
-		}
-
 		// when all is fine, return true after erasing the token (one use only)
-
+		unset($_SESSION['token']);
+		unset($_SESSION['token_expiration_time']);
 		return true;
 	}
 
+	// create a token, echo a hidden input, sets the session token
+	// if $token_only==true, echo only the token.
 	function newToken($token_only=false){
 		global $auto_restrict;
-		$ID=sha1(id_user());
 		$token=hash('sha512',uniqid('',true));
-		// add token to the list
-		$auto_restrict['tokens'][$ID][$token]=@date('U')+$auto_restrict['tokens_expiration_delay'];
-		$auto_restrict['tokens'][$ID]['id']=id_user();
-		saveTokens();
+		$_SESSION['token_expiration_time']=@date('U')+$auto_restrict['tokens_expiration_delay'];
+		$_SESSION['token']=$token;
 		if (!$token_only){echo '<input type="hidden" value="'.$token.'" name="token"/>';}
-		else if ($token===true){echo $token;}
-		else {return $token;}
+		else {echo $token;}
 	}
 
-	function clearOldTokens(){
-		global $auto_restrict;
-		$d=@date('U');
-		if (is_file($auto_restrict["tokens_filename"]) && filesize($auto_restrict["tokens_filename"])>$auto_restrict['token_file_size_limit']){
-			foreach($auto_restrict["tokens"] as $id=>$token_array){
-				foreach ($token_array as $token=>$time){
-					if ($token!='id'){
-						if ($time<$d){unset($auto_restrict['tokens'][$id][$token]);}
-					}
-				}
-				if (count($auto_restrict['tokens'][$id])==1){unset($auto_restrict['tokens'][$id]);}
-			}
-			saveTokens();
-		}
-		
+	// repeat the previously generated token hidden input (or echo only the token)
+	function sameToken($token_only=false){
+		if (empty($_SESSION['token'])){echo 'Token error: no session token !';return;}
+		if (!$token_only){echo '<input type="hidden" value="'.$_SESSION['token'].'" name="token"/>';}
+		else {echo $_SESSION['token'];}
 	}
 
-	function saveTokens(){
-		global $auto_restrict;
-		file_put_contents($auto_restrict["tokens_filename"],'<?php /* Tokens */ $auto_restrict["tokens"]='.var_export($auto_restrict["tokens"],true).' ?>');
+
+	// ------------------------------------------------------------------
+	// ADMIN ONLY PROTECTION 
+	// ------------------------------------------------------------------
+	// echo a password input form to secure sensitive sections
+	function adminPassword($label='',$placeholder=''){
+		if (!empty($label)){$label='<label for="admin_password" class="admin_password_label">'.$label.'</label>';}
+		if (!empty($placeholder)){$placeholder=' placeholder="'.$placeholder.'" ';}
+		echo $label.'<input id="admin_password" type="password" class="admin_password" name="admin_password" '.$placeholder.'/>';
 	}
 
 
 	// ------------------------------------------------------------------
 	// IP 
 	// ------------------------------------------------------------------
+	// increment the IP counter in the banned IP file
 	function add_banned_ip($ip=null){
 		if(empty($ip)){$ip=$_SERVER['REMOTE_ADDR'];}
 		global $auto_restrict;
@@ -343,6 +366,7 @@
 		file_put_contents($auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
 	}
 
+	// check if user IP is banned or not
 	function checkIP($ip=null){
 		if(empty($ip)){$ip=$_SERVER['REMOTE_ADDR'];}
 		global $auto_restrict;
