@@ -284,7 +284,6 @@
 			}
 			if ($_SESSION['token']!=$_POST['token']){// tokens are different ? GET OUT !
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
-				var_dump($_SESSION);var_dump($_POST);exit('3');
 				return false;
 			}
 		}
