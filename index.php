@@ -72,9 +72,9 @@ Cette page contient un include d'auto_restrict: <br/> on ne peut donc y accéder
 	<fieldset><legend class="green">Un formulaire avec token</legend>
 		<form action="?" method="get">
 			<input type="text" name="case" placeholder="tapez un truc"/><input type="submit"/>
-			<?php sameToken(); ?>
+			<?php newToken(); ?>
 		</form>
-		<small>On n'ajoute que <em>&lt;?php sameToken(); ?> pour réutiliser le token généré avec newToken()</em></small>
+		<small>On n'ajoute que <em>&lt;?php newToken(); ?></em></small>
 	</fieldset>
 
 	
@@ -86,7 +86,7 @@ Cette page contient un include d'auto_restrict: <br/> on ne peut donc y accéder
 	<fieldset><legend class="green">Un formulaire avec token + mot de passe admin</legend>
 		<form action="?" method="post">
 			<input type="text" name="case" placeholder="donnée sensible"/>
-			<?php sameToken(); adminPassword('Mot de passe admin:');?>
+			<?php newToken(); adminPassword('Mot de passe admin:');?>
 			<input type="submit"/>
 		</form>
 		<small>On n'ajoute que <em>&lt;?php adminPassword(); ?> pour ajouter une case mot de passe admin</em></small>
