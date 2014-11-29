@@ -51,8 +51,7 @@ How to use with forms:
 - add  <?php include('auto_restrict.php'); ?> in the form's page
 - add  <?php include('auto_restrict.php'); ?> in the form's action php script
 - add <?php newToken();?> inside the form.
-- if you need to repeat the generated token in another form of the same page, use <?php repeatToken();?> inside the form.
-- when you want to secure a sensitive form, use <?php adminPassword();?> inside the form.
+- when you want to secure a sensitive form, use <?php adminPassword();?> inside the form. You can specify a label text and/or a placeholder text adminPassword('label text',placeholder text');
 - that's it !
 
 if you want to secure a script's URL with $_GET commands:
