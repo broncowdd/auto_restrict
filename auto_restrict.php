@@ -16,9 +16,10 @@
 	 *   - referrer errors (same domain)
 	 *   - auto ban IP and (auto unban)
 	 *   - tokens to secure post and get forms (just add <?php newToken(); ?> to the form or <?php sameToken();?> to repeat a previously generated token, in case of various forms in a same page)
-	 *   - easyly secure sensitive actions adding admin password in your form (just add <?php adminPassword(); ?>, auto_restrict will exit if password is not correct)
+	 * 	 - easyly secure sensitive actions adding admin password in your form (just add <?php adminPassword(); ?>, auto_restrict will exit if password is not correct)
 	 * ToDo:
 	 *   - secure post and get data
+	 *   - add function to ask password for sensitive/superadmin actions...
 	 *   - add a log connection file
 	 *   
 	 *   
@@ -267,10 +268,7 @@
 			count($_POST)==3&&isset($_POST['login'])&&isset($_POST['pass'])&&isset($_POST['cookie'])
 		){return true;} 
 
-		// SESSION token too old ? out ! (but no ip_ban)
-		if ($_SESSION['token_expiration_time']<@date('U')){ 
-			return false;
-		}
+	
 
 		// secure $_POST with token
 		if (!empty($_POST)){
@@ -278,11 +276,8 @@
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
 				return false;
 			}
-			if (!isset($_SESSION['token'])){// Problem with session token ? get out !
-				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
-				return false;
-			}
-			if ($_SESSION['token']!=$_POST['token']){// tokens are different ? GET OUT !
+			$token=$_POST['token'];
+			if (!isset($_SESSION[$token])){// Problem with session token ? get out !
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
 				return false;
 			}
@@ -295,15 +290,19 @@
 				return false;
 			}
 			$token=$_GET['token'];
-			if (!isset($_SESSION['token'])){
+			if (!isset($_SESSION[$token])){ // Problem with session token ? get out !
 				if ($auto_restrict['use_ban_IP_on_token_errors']){add_banned_ip();}
 				return false;
 			}
 		}
 
+		// SESSION token too old ? out ! (but no ip_ban)
+		if ($_SESSION[$token]<@date('U')){ 
+			return false;
+		}
+
 		// when all is fine, return true after erasing the token (one use only)
-		unset($_SESSION['token']);
-		unset($_SESSION['token_expiration_time']);
+		unset($_SESSION[$token]);
 		return true;
 	}
 
@@ -312,20 +311,12 @@
 	function newToken($token_only=false){
 		global $auto_restrict;
 		$token=hash('sha512',uniqid('',true));
-		$_SESSION['token_expiration_time']=@date('U')+$auto_restrict['tokens_expiration_delay'];
-		$_SESSION['token']=$token;
+		$_SESSION[$token]=@date('U')+$auto_restrict['tokens_expiration_delay'];
 		if (!$token_only){echo '<input type="hidden" value="'.$token.'" name="token"/>';}
 		else {echo $token;}
 	}
 
-	// repeat the previously generated token hidden input (or echo only the token)
-	function sameToken($token_only=false){
-		if (empty($_SESSION['token'])){echo 'Token error: no session token !';return;}
-		if (!$token_only){echo '<input type="hidden" value="'.$_SESSION['token'].'" name="token"/>';}
-		else {echo $_SESSION['token'];}
-	}
-
-
+	
 	// ------------------------------------------------------------------
 	// ADMIN ONLY PROTECTION 
 	// ------------------------------------------------------------------
