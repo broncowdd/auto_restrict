@@ -20,14 +20,14 @@ Ajouter <?php include('auto_restrict.php'); ?> à une page et son accès est ver
 
 On peut ainsi interdire l'accès à des pages de configuration par exemple.
 S'il s'agit d'un script de gestion de données $_POST:
-    - on ajoute <?php include('auto_restrict.php'); ?> au début de la page de formulaire et la ligne <?php newToken();?> à l'intérieur de ce dernier.
-    - on ajoute <?php include('auto_restrict.php'); ?> dans le script appelé par le formulaire.
-	Auto_restrict se chargera de gérer les tokens pour ce formulaire.
-	- pour un formulaire sensible, on peut ajouter <?php adminPassword(); ?> dans le formulaire et auto_restrict vérifiera le passe avant de passer la main et bloquera en cas de passe erroné.
+- on ajoute <?php include('auto_restrict.php'); ?> au début de la page de formulaire et la ligne <?php newToken();?> à l'intérieur de ce dernier.
+- on ajoute <?php include('auto_restrict.php'); ?> dans le script appelé par le formulaire.
+Auto_restrict se chargera de gérer les tokens pour ce formulaire.
+- pour un formulaire sensible, on peut ajouter <?php adminPassword(); ?> dans le formulaire et auto_restrict vérifiera le passe avant de passer la main et bloquera en cas de passe erroné.
 
 S'il s'agit de données $_GET:
-    - on procède de même pour les formulaires
-    - on ajoute simplement <?php newToken(true); ?> à la fin des liens contenant des $_GET à sécuriser (la page cible devra inclure auto_restrict.php, bien entendu)
+- on procède de même pour les formulaires
+- on ajoute simplement <?php newToken(true); ?> à la fin des liens contenant des $_GET à sécuriser (la page cible devra inclure auto_restrict.php, bien entendu)
 
 Pour créer un lien permettant de se déconnecter, ajouter simplement "?logout=ok" ou"?deconnexion=ok" à n'importe quelle url contenant un include d'auto_restrict.
 
