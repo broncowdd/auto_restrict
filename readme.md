@@ -44,6 +44,9 @@ Certaines variables de configuration permettent d'adapter le comportement d'auto
 - $auto_restrict['use_ban_IP_on_token_errors']: utiliser le système de bannissement lors d'une erreur de token
 
 
+
+
+#English
 ##Information
 A single script to include in a php page to secure the access.
 - login/pass creation on first connection
@@ -74,7 +77,7 @@ To create a logout link, just add "?logout=ok" at the end (the target link must 
 
 ##Configuration
 Ther's a few configuration vars. Change them before the script's include:
-- $auto_restrict['just_die_if_not_logged']: if true, don't redirect to login form if there's no user logged (avoid redirect in case on ajax access to the page for example)
+- $auto_restrict['just_die_if_not_logged']: if true, don't redirect to login form if there's no user logged (avoid login form redirect in case on ajax access to the page for example)
 - $auto_restrict['just_die_on_errors']: if true, the script just ends on all the security problems; if false, redirect to login form on security problem.
 - $auto_restrict['session_expiration_delay']: session duration in minutes
 - $auto_restrict['cookie_expiration_delay']: cookie duration in days
