@@ -43,20 +43,20 @@
 	// default config
 	// ------------------------------------------------------------------
 	// you can modify this config before the include('auto_restrict.php');
-	if (!isset($auto_restrict['error_msg'])){					$auto_restrict['error_msg']='Erreur - impossible de se connecter.';}// utilisé si on ne veut pas rediriger
-	if (!isset($auto_restrict['cookie_name'])){					$auto_restrict['cookie_name']='auto_restrict';}// nom du cookie
+	if (!isset($auto_restrict['error_msg'])){			$auto_restrict['error_msg']='Erreur - impossible de se connecter.';}// utilisé si on ne veut pas rediriger
+	if (!isset($auto_restrict['cookie_name'])){			$auto_restrict['cookie_name']='auto_restrict';}// nom du cookie
 	if (!isset($auto_restrict['session_expiration_delay'])){	$auto_restrict['session_expiration_delay']=1;}//minutes
 	if (!isset($auto_restrict['cookie_expiration_delay'])){		$auto_restrict['cookie_expiration_delay']=30;}//days
 	if (!isset($auto_restrict['IP_banned_expiration_delay'])){	$auto_restrict['IP_banned_expiration_delay']=90;}//seconds
-	if (!isset($auto_restrict['max_security_issues_before_ban'])){				$auto_restrict['max_security_issues_before_ban']=5;}
-	if (!isset($auto_restrict['just_die_on_errors'])){			$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of user not logged;
+	if (!isset($auto_restrict['max_security_issues_before_ban'])){	$auto_restrict['max_security_issues_before_ban']=5;}
+	if (!isset($auto_restrict['just_die_on_errors'])){		$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of user not logged;
 	if (!isset($auto_restrict['just_die_if_not_logged'])){		$auto_restrict['just_die_if_not_logged']=false;}// end script immediately instead of include loginform in case of banished ip or referer problem;
 	if (!isset($auto_restrict['tokens_expiration_delay'])){		$auto_restrict['tokens_expiration_delay']=300;}//seconds
-	if (!isset($auto_restrict['use_GET_tokens_too'])){			$auto_restrict['use_GET_tokens_too']=true;}
+	if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_tokens_too']=true;}
 	if (!isset($auto_restrict['use_ban_IP_on_token_errors'])){	$auto_restrict['use_ban_IP_on_token_errors']=true;}
-	if (!isset($auto_restrict['redirect_error'])){				$auto_restrict['redirect_error']='index.php';}// si précisé, pas de message d'erreur
-	if (!isset($auto_restrict['domain'])){						$auto_restrict['domain']=$_SERVER['SERVER_NAME'];}
-	if (!empty($_SERVER['HTTP_REFERER'])){						$auto_restrict['referer']=returndomain($_SERVER['HTTP_REFERER']);}else{$auto_restrict['referer']='';}
+	if (!isset($auto_restrict['redirect_error'])){			$auto_restrict['redirect_error']='index.php';}// si précisé, pas de message d'erreur
+	if (!isset($auto_restrict['domain'])){				$auto_restrict['domain']=$_SERVER['SERVER_NAME'];}
+	if (!empty($_SERVER['HTTP_REFERER'])){				$auto_restrict['referer']=returndomain($_SERVER['HTTP_REFERER']);}else{$auto_restrict['referer']='';}
 	
 	
 	
