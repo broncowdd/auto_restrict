@@ -31,7 +31,17 @@ S'il s'agit de données $_GET:
 
 Pour créer un lien permettant de se déconnecter, ajouter simplement "?logout=ok" ou"?deconnexion=ok" à n'importe quelle url contenant un include d'auto_restrict.
 
-
+##Configuration du script
+Certaines variables de configuration permettent d'adapter le comportement d'auto_restrict, il suffit de les redéfinir avant include:
+- $auto_restrict['just_die_if_not_logged']: si à true, ne charge pas le formulaire de login si aucun utilisateur n'est loggué (pour éviter de voir apparaître le formulaire de connexion lors d'un accès via Ajax à un script php protégé par exemple)
+- $auto_restrict['just_die_on_errors']: si à true, toute action dont la sécurité est compromise génère un message d'erreur; à false, la session est fermée et on est redirigé vers le formulaire de login.
+- $auto_restrict['session_expiration_delay']: durée de vie de la session en minutes 
+- $auto_restrict['cookie_expiration_delay']: durée de vie du cookie en jours
+- $auto_restrict['IP_banned_expiration_delay']: durée de bannissement d'IP en secondes
+- $auto_restrict['max_security_issues_before_ban'])): nombre maximum de problèmes de sécurité avant bannissement
+- $auto_restrict['tokens_expiration_delay']: durée de vie des tokens en secondes
+- $auto_restrict['use_GET_tokens_too']: utiliser également les tokens pour les variables $_GET
+- $auto_restrict['use_ban_IP_on_token_errors']: utiliser le système de bannissement lors d'une erreur de token
 
 
 ##Information
@@ -59,5 +69,17 @@ if you want to secure a script's URL with $_GET commands:
 - add <?php newToken(true); ?> at the end of the link's href
 - add  <?php include('auto_restrict.php'); ?> in the destination page 
 
-
 To create a logout link, just add "?logout=ok" at the end (the target link must include auto_restrict, of course ^^).
+
+
+##Configuration
+Ther's a few configuration vars. Change them before the script's include:
+- $auto_restrict['just_die_if_not_logged']: if true, don't redirect to login form if there's no user logged (avoid redirect in case on ajax access to the page for example)
+- $auto_restrict['just_die_on_errors']: if true, the script just ends on all the security problems; if false, redirect to login form on security problem.
+- $auto_restrict['session_expiration_delay']: session duration in minutes
+- $auto_restrict['cookie_expiration_delay']: cookie duration in days
+- $auto_restrict['IP_banned_expiration_delay']: bannishment duration in seconds
+- $auto_restrict['max_security_issues_before_ban']))
+- $auto_restrict['tokens_expiration_delay']: tokens duration in minutes
+- $auto_restrict['use_GET_tokens_too']: also use tokens with $_GET vars
+- $auto_restrict['use_ban_IP_on_token_errors']: ban IP if there's a token security problem
