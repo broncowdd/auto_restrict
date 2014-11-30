@@ -48,8 +48,9 @@
 	if (!isset($auto_restrict['session_expiration_delay'])){	$auto_restrict['session_expiration_delay']=1;}//minutes
 	if (!isset($auto_restrict['cookie_expiration_delay'])){		$auto_restrict['cookie_expiration_delay']=30;}//days
 	if (!isset($auto_restrict['IP_banned_expiration_delay'])){	$auto_restrict['IP_banned_expiration_delay']=90;}//seconds
-	if (!isset($auto_restrict['max_login_fails'])){				$auto_restrict['max_login_fails']=5;}
-	if (!isset($auto_restrict['just_die_on_errors'])){			$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of banished ip or referer problem;
+	if (!isset($auto_restrict['max_security_issues_before_ban'])){				$auto_restrict['max_security_issues_before_ban']=5;}
+	if (!isset($auto_restrict['just_die_on_errors'])){			$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of user not logged;
+	if (!isset($auto_restrict['just_die_if_not_logged'])){		$auto_restrict['just_die_if_not_logged']=false;}// end script immediately instead of include loginform in case of banished ip or referer problem;
 	if (!isset($auto_restrict['tokens_expiration_delay'])){		$auto_restrict['tokens_expiration_delay']=300;}//seconds
 	if (!isset($auto_restrict['use_GET_tokens_too'])){			$auto_restrict['use_GET_tokens_too']=true;}
 	if (!isset($auto_restrict['use_ban_IP_on_token_errors'])){	$auto_restrict['use_ban_IP_on_token_errors']=true;}
@@ -103,7 +104,7 @@
 	// session duration...
 	// on problem, out !
 	// ------------------------------------------------------------------
-	if (!is_ok()){session_destroy();include('login_form.php');exit();} 
+	if (!is_ok()){session_destroy();if (!$auto_restrict['just_die_if_not_logged']){include('login_form.php');}exit();} 
 	// ------------------------------------------------------------------
 
 	// ------------------------------------------------------------------
@@ -316,11 +317,12 @@
 		else {echo $token;}
 	}
 
-	
+
 	// ------------------------------------------------------------------
 	// ADMIN ONLY PROTECTION 
 	// ------------------------------------------------------------------
 	// echo a password input form to secure sensitive sections
+	// you can specify a label text and/or a placeholder text
 	function adminPassword($label='',$placeholder=''){
 		if (!empty($label)){$label='<label for="admin_password" class="admin_password_label">'.$label.'</label>';}
 		if (!empty($placeholder)){$placeholder=' placeholder="'.$placeholder.'" ';}
@@ -361,7 +363,7 @@
 		global $auto_restrict;
 
 		if (isset($auto_restrict["banned_ip"][$ip])){
-			if ($auto_restrict["banned_ip"][$ip]['nb']<$auto_restrict['max_login_fails']){return true;} // below max login fails 
+			if ($auto_restrict["banned_ip"][$ip]['nb']<$auto_restrict['max_security_issues_before_ban']){return true;} // below max login fails 
 			else if ($auto_restrict["banned_ip"][$ip]['date']>=@date('U')){return false;} // active banishment 
 			else if ($auto_restrict["banned_ip"][$ip]['date']<@date('U')){remove_banned_ip($ip);return true;} // old banishment 
 			return false;
