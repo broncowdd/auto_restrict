@@ -1,4 +1,4 @@
-#Auto_restrict 3.1 
+#Auto_restrict 3.2 
 ##(engish version below)(at least a poor one ;-)
 http://warriordudimanche.net/article289/auto-restrict-3-0-you-shall-not-pass-at-least-without-a-token
 
