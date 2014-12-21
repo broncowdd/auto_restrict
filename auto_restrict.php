@@ -263,7 +263,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 	// return true if token situation is ok
 	function checkToken(){
 		global $auto_restrict;	
-		if(empty($_POST)&&empty($_GET)){return true;}// no post or get data, no need of a token
+		if(empty($_POST)&&empty($_GET)||empty($_POST)&&!$auto_restrict['use_GET_tokens_too']){return true;}// no post or get data, no need of a token
 
 		if (// from login form, no need of a token
 			count($_POST)==2&&isset($_POST['login'])&&isset($_POST['pass'])
