@@ -23,14 +23,14 @@
 	<form action='' method='post' name='' >
 		<p class="logo"> </p>
 		<?php 
-		$f=file_exists('pass.php');
+		$f=file_exists(PATH.'pass.php');
 		if($f){echo '<h1>Identifiez-vous</h1>';}else{echo '<h1>Creez votre passe</h1>';} ?>
 			<hr/>
 			<label for='login'>Login </label>
 			<input type='text' name='login' id='login' required="required" autofocus/>
 			<br/>
 			<hr/>
-		<label for='pass'>Passe </label>
+		<label for='pass'>Passe (8 caractères minimum) </label>
 		<input type='password' name='pass' id='pass'  required="required"/>	
 
 		

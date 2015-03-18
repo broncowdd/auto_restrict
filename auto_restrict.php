@@ -52,9 +52,9 @@
 	if (!isset($auto_restrict['just_die_on_errors'])){		$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of user not logged;
 	if (!isset($auto_restrict['just_die_if_not_logged'])){		$auto_restrict['just_die_if_not_logged']=false;}// end script immediately instead of include loginform in case of banished ip or referer problem;
 	if (!isset($auto_restrict['tokens_expiration_delay'])){		$auto_restrict['tokens_expiration_delay']=300;}//seconds
-if (!isset($auto_restrict['kill_tokens_after_use'])){		$auto_restrict['kill_tokens_after_use']=true;}//false to allow the token to survive after it was used (for a form with multiple submits, like a preview button)
+	if (!isset($auto_restrict['kill_tokens_after_use'])){		$auto_restrict['kill_tokens_after_use']=true;}//false to allow the token to survive after it was used (for a form with multiple submits, like a preview button)
 		
-if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_tokens_too']=true;}
+	if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_tokens_too']=true;}
 	if (!isset($auto_restrict['use_ban_IP_on_token_errors'])){	$auto_restrict['use_ban_IP_on_token_errors']=true;}
 	if (!isset($auto_restrict['redirect_error'])){			$auto_restrict['redirect_error']='index.php';}// si précisé, pas de message d'erreur
 	if (!isset($auto_restrict['domain'])){				$auto_restrict['domain']=$_SERVER['SERVER_NAME'];}
@@ -67,13 +67,14 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 	// ------------------------------------------------------------------
 	// handles user login creation process 
 	// creates pass.php with secured login pass data
-	if(file_exists('pass.php')) include('pass.php');
+	define('PATH','auto_restrict/');
+	if(file_exists(PATH.'pass.php')) include(PATH.'pass.php');
 	if(!isset($auto_restrict['pass'])){
-		if(isset($_POST['pass'])&&isset($_POST['login'])&&$_POST['pass']!=''&&$_POST['login']!=''){ 
+		if(isset($_POST['pass'])&&isset($_POST['login'])&&$_POST['pass']!=''&&$_POST['login']!=''&&strlen($_POST['pass'])>=8){ 
 			$salt = md5(uniqid('', true));
 			$auto_restrict['encryption_key']=md5(uniqid('', true));
 	
-			file_put_contents('pass.php', '<?php $auto_restrict["login"]="'.$_POST['login'].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($salt,true).'; $auto_restrict["pass"] = '.var_export(hash('sha512', $salt.$_POST['pass']),true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "banned_ip_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";?>');
+			file_put_contents(PATH.'pass.php', '<?php $auto_restrict["login"]="'.$_POST['login'].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($salt,true).'; $auto_restrict["pass"] = '.var_export(PasswordTools::create_hash($_POST['pass'],$salt),true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "banned_ip_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";?>');
 			include('login_form.php');exit();
 		}
 		else{ 
@@ -106,7 +107,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 	// session duration...
 	// on problem, out !
 	// ------------------------------------------------------------------
-	if (!is_ok()){session_destroy();if (!$auto_restrict['just_die_if_not_logged']){include('login_form.php');}exit();} 
+	if (!is_ok()){@session_destroy();if (!$auto_restrict['just_die_if_not_logged']){include('login_form.php');}exit();} 
 	// ------------------------------------------------------------------
 
 	// ------------------------------------------------------------------
@@ -117,8 +118,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 	// ------------------------------------------------------------------	
 
 	if (isset($_POST['admin_password'])){
-		$pass=hash('sha512', $auto_restrict["salt"].$_POST['admin_password']);
-		if ($auto_restrict['pass']!=$pass){
+		if (PasswordTools::validate_password($_POST['admin_password'],$auto_restrict['pass'])){
 			add_banned_ip();
 			death('The admin password is wrong... too bad !');
 		}
@@ -218,7 +218,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 	function log_user($login_donne,$pass_donne){
 		// create session vars
 		global $auto_restrict;
-		if ($auto_restrict['login']===$login_donne && $auto_restrict['pass']===hash('sha512', $auto_restrict["salt"].$pass_donne)){
+		if ($auto_restrict['login']===$login_donne && PasswordTools::validate_password($pass_donne,$auto_restrict['pass'])) {
 			$_SESSION['id_user']=Crypte(id_user(),$auto_restrict['encryption_key']);
 			$_SESSION['login']=$auto_restrict['login'];	
 			$_SESSION['expire']=time()+(60*$auto_restrict['session_expiration_delay']);			
@@ -347,7 +347,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 		}
 		
 		$auto_restrict["banned_ip"][$ip]['date']=@date('U')+$auto_restrict['IP_banned_expiration_delay'];
-		file_put_contents($auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
+		file_put_contents(PATH.$auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
 	}
 
 	function remove_banned_ip($ip=null){
@@ -356,7 +356,7 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 		if (isset($auto_restrict["banned_ip"][$ip])){
 			unset($auto_restrict["banned_ip"][$ip]);
 		}
-		file_put_contents($auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
+		file_put_contents(PATH.$auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
 	}
 
 	// check if user IP is banned or not
@@ -371,4 +371,107 @@ if (!isset($auto_restrict['use_GET_tokens_too'])){		$auto_restrict['use_GET_toke
 			return false;
 		}else{return true;}// ip is ok
 	}
+
+
+# ------------------ BEGIN LICENSE BLOCK ------------------
+#
+# This file is part of SIGesTH
+#
+# Copyright (c) 2009 - 2014 Cyril MAGUIRE, <contact@ecyseo.net>
+# Licensed under the CeCILL v2.1 license.
+# See http://www.cecill.info/licences.fr.html
+#
+# ------------------- END LICENSE BLOCK -------------------
+
+/**
+ * @package    SIGesTH
+ * @author     MAGUIRE Cyril <contact@ecyseo.net>
+ * @copyright  2009-2014 Cyril MAGUIRE, <contact@ecyseo.net>
+ * @license    Licensed under the CeCILL v2.1 license. http://www.cecill.info/licences.fr.html
+ */
+class PasswordTools {
+
+	private static $PHP_VERSION_MIN = '5.5.0';
+	private static $AUTO_RESTRICT;
+
+	private static function options() {
+		return array(
+		    'cost' => self::getOptimalBcryptCostParameter(),
+		    'salt' => mcrypt_create_iv(22, MCRYPT_DEV_URANDOM),
+		);
+	}
+
+	/**
+	 * This code will benchmark your server to determine how high of a cost you can
+	 * afford. You want to set the highest cost that you can without slowing down
+	 * you server too much. 8-10 is a good baseline, and more is good if your servers
+	 * are fast enough. The code below aims for ≤ 50 milliseconds stretching time,
+	 * which is a good baseline for systems handling interactive logins.
+	 * @Param int $min_ms Minimum amount of time in milliseconds that it should take
+	 * to calculate the hashes
+	 */
+	private static function getOptimalBcryptCostParameter($timeTarget = 0.25) {// 250 milliseconds 
+		$cost = 8;
+		do {
+		    $cost++;
+		    $start = microtime(true);
+		    \password_hash("rasmuslerdorf", PASSWORD_DEFAULT, ["cost" => $cost, 'salt' => 'usesomesillystringforsalt']);
+		    $end = microtime(true);
+		} while (($end - $start) < $timeTarget);
+
+		return $cost;
+	}
+
+	/**
+	 * Note that the salt here is randomly generated.
+	 * Never use a static salt or one that is not randomly generated.
+	 *
+	 * For the VAST majority of use-cases, let password_hash generate the salt randomly for you
+	 */
+	public static function create_hash($password,$salt=false) {
+		if(version_compare(PHP_VERSION, self::$PHP_VERSION_MIN, '<')){
+			return hash('sha512', $salt.$password);
+		} else {
+			return \password_hash($password, PASSWORD_DEFAULT, self::options());
+		}
+	}
+
+	public static function validate_password($password, $good_hash) {
+		if (function_exists('password_verify') && \password_verify($password, $good_hash)) {
+		    return true;
+		} else {
+			return oldPasswdTools::validate_password($password, $good_hash);
+		}
+		return false;
+	}
+
+	public static function isPasswordNeedsRehash($password,$hash) {
+        if (function_exists('password_needs_rehash') && \password_needs_rehash($hash, PASSWORD_DEFAULT, self::options())) {
+            return self::create_hash($password);
+        }
+        return false;
+	}
+	
+} 
+
+class oldPasswdTools {
+
+	public static function validate_password($password,$hash) {
+		if (is_file(PATH.'pass.php')) {
+			include PATH.'pass.php';
+		} else {
+			return false;
+		}
+		$pass=hash('sha512', $auto_restrict["salt"].$password);
+		if ($pass != $hash) {
+			return false;
+		} else {
+			$newPass = PasswordTools::isPasswordNeedsRehash($password,$hash);
+			if ($newPass) {
+				file_put_contents(PATH.'pass.php', '<?php $auto_restrict["login"]="'.$auto_restrict["login"].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($auto_restrict["salt"],true).'; $auto_restrict["pass"] = '.var_export($newPass,true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "'.$auto_restrict["banned_ip_filename"].'";?>');
+			}
+			return true;
+		}
+	}
+}
 ?>
