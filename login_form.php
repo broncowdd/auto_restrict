@@ -30,7 +30,7 @@
 			<input type='text' name='login' id='login' required="required" autofocus/>
 			<br/>
 			<hr/>
-		<label for='pass'>Passe </label>
+		<label for='pass'>Passe (8 caractères minimum) </label>
 		<input type='password' name='pass' id='pass'  required="required"/>	
 
 		
