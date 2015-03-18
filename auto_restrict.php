@@ -67,13 +67,14 @@
 	// ------------------------------------------------------------------
 	// handles user login creation process 
 	// creates pass.php with secured login pass data
-	if(file_exists('pass.php')) include('pass.php');
+	define('PATH','auto_restrict/');
+	if(file_exists(PATH.'pass.php')) include(PATH.'pass.php');
 	if(!isset($auto_restrict['pass'])){
 		if(isset($_POST['pass'])&&isset($_POST['login'])&&$_POST['pass']!=''&&$_POST['login']!=''&&strlen($_POST['pass'])>=8){ 
 			$salt = md5(uniqid('', true));
 			$auto_restrict['encryption_key']=md5(uniqid('', true));
 	
-			file_put_contents('pass.php', '<?php $auto_restrict["login"]="'.$_POST['login'].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($salt,true).'; $auto_restrict["pass"] = '.var_export(PasswordTools::create_hash($_POST['pass']),true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "banned_ip_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";?>');
+			file_put_contents(PATH.'pass.php', '<?php $auto_restrict["login"]="'.$_POST['login'].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($salt,true).'; $auto_restrict["pass"] = '.var_export(PasswordTools::create_hash($_POST['pass'],$salt),true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "banned_ip_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";?>');
 			include('login_form.php');exit();
 		}
 		else{ 
@@ -106,7 +107,7 @@
 	// session duration...
 	// on problem, out !
 	// ------------------------------------------------------------------
-	if (!is_ok()){session_destroy();if (!$auto_restrict['just_die_if_not_logged']){include('login_form.php');}exit();} 
+	if (!is_ok()){@session_destroy();if (!$auto_restrict['just_die_if_not_logged']){include('login_form.php');}exit();} 
 	// ------------------------------------------------------------------
 
 	// ------------------------------------------------------------------
@@ -117,7 +118,7 @@
 	// ------------------------------------------------------------------	
 
 	if (isset($_POST['admin_password'])){
-		if (PasswordTools::validate_password($_POST['admin_password'],$auto_restrict['pass']){
+		if (PasswordTools::validate_password($_POST['admin_password'],$auto_restrict['pass'])){
 			add_banned_ip();
 			death('The admin password is wrong... too bad !');
 		}
@@ -346,7 +347,7 @@
 		}
 		
 		$auto_restrict["banned_ip"][$ip]['date']=@date('U')+$auto_restrict['IP_banned_expiration_delay'];
-		file_put_contents($auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
+		file_put_contents(PATH.$auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
 	}
 
 	function remove_banned_ip($ip=null){
@@ -355,7 +356,7 @@
 		if (isset($auto_restrict["banned_ip"][$ip])){
 			unset($auto_restrict["banned_ip"][$ip]);
 		}
-		file_put_contents($auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
+		file_put_contents(PATH.$auto_restrict["banned_ip_filename"],'<?php /*Banned IP*/ $auto_restrict["banned_ip"]='.var_export($auto_restrict["banned_ip"],true).' ?>');
 	}
 
 	// check if user IP is banned or not
@@ -370,6 +371,7 @@
 			return false;
 		}else{return true;}// ip is ok
 	}
+
 
 # ------------------ BEGIN LICENSE BLOCK ------------------
 #
@@ -388,6 +390,9 @@
  * @license    Licensed under the CeCILL v2.1 license. http://www.cecill.info/licences.fr.html
  */
 class PasswordTools {
+
+	private static $PHP_VERSION_MIN = '5.5.0';
+	private static $AUTO_RESTRICT;
 
 	private static function options() {
 		return array(
@@ -423,12 +428,16 @@ class PasswordTools {
 	 *
 	 * For the VAST majority of use-cases, let password_hash generate the salt randomly for you
 	 */
-	public static function create_hash($password) {
-		return \password_hash($password, PASSWORD_DEFAULT, self::options());
+	public static function create_hash($password,$salt=false) {
+		if(version_compare(PHP_VERSION, self::$PHP_VERSION_MIN, '<')){
+			return hash('sha512', $salt.$password);
+		} else {
+			return \password_hash($password, PASSWORD_DEFAULT, self::options());
+		}
 	}
 
 	public static function validate_password($password, $good_hash) {
-		if (\password_verify($password, $good_hash)) {
+		if (function_exists('password_verify') && \password_verify($password, $good_hash)) {
 		    return true;
 		} else {
 			return oldPasswdTools::validate_password($password, $good_hash);
@@ -437,7 +446,7 @@ class PasswordTools {
 	}
 
 	public static function isPasswordNeedsRehash($password,$hash) {
-        if (\password_needs_rehash($hash, PASSWORD_DEFAULT, self::options())) {
+        if (function_exists('password_needs_rehash') && \password_needs_rehash($hash, PASSWORD_DEFAULT, self::options())) {
             return self::create_hash($password);
         }
         return false;
@@ -447,9 +456,9 @@ class PasswordTools {
 
 class oldPasswdTools {
 
-	public function validate_password($password,$hash) {
-		if(file_exists('pass.php')) { 
-			include('pass.php');
+	public static function validate_password($password,$hash) {
+		if (is_file(PATH.'pass.php')) {
+			include PATH.'pass.php';
 		} else {
 			return false;
 		}
@@ -457,9 +466,10 @@ class oldPasswdTools {
 		if ($pass != $hash) {
 			return false;
 		} else {
-			$newPass = PasswordTools::isPasswordNeedsRehash($password,$hash));
-
-			file_put_contents('pass.php', '<?php $auto_restrict["login"]="'.$auto_restrict["login"].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($auto_restrict["salt"],true).'; $auto_restrict["pass"] = '.var_export($newPass,true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "'.$auto_restrict["banned_ip_filename"].'";?>');
+			$newPass = PasswordTools::isPasswordNeedsRehash($password,$hash);
+			if ($newPass) {
+				file_put_contents(PATH.'pass.php', '<?php $auto_restrict["login"]="'.$auto_restrict["login"].'";$auto_restrict["encryption_key"]='.var_export($auto_restrict['encryption_key'],true).';$auto_restrict["salt"] = '.var_export($auto_restrict["salt"],true).'; $auto_restrict["pass"] = '.var_export($newPass,true).'; $auto_restrict["tokens_filename"] = "tokens_'.var_export(hash('sha512', $salt.uniqid('', true)),true).'.php";$auto_restrict["banned_ip_filename"] = "'.$auto_restrict["banned_ip_filename"].'";?>');
+			}
 			return true;
 		}
 	}
