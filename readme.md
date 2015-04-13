@@ -1,6 +1,7 @@
 #Auto_restrict 3.3 
 ##(engish version below)(at least a poor one ;-)
-http://warriordudimanche.net/article289/auto-restrict-3-0-you-shall-not-pass-at-least-without-a-token
+- 3.1 http://warriordudimanche.net/article289/auto-restrict-3-0-you-shall-not-pass-at-least-without-a-token
+- 3.3 http://warriordudimanche.net/article314/auto-restrict-3-3-toujours-plus-loin-toujours-plus-haut
 
 Un simple script à inclure dans une page ou un script php pour en sécuriser l'accès.
 Il faut inclure ce script avant la partie à sécuriser ou le plus tôt possible dans la page.
