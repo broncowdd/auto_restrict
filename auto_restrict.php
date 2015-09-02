@@ -1,10 +1,10 @@
 <?php 
 
 	/**
-	 * auto_restrict
+	* auto_restrict
 	 * @author bronco@warriordudimanche.com / www.warriordudimanche.net
 	 * @copyright open source and free to adapt (keep me aware !)
-	 * @version 3.3 - one user only version / version mono utilisateur
+	 * @version 3.4 - one user only version / version mono utilisateur
 	 *   
 	 * This script locks a page's access  
 	 * Just include it in the page you want to lock  
@@ -36,10 +36,8 @@
 	 * ajouter un fichier log de connexion
 	 * 
 	 * 
-	 * ajout 3.3 : 
-	 * root et path from root
-	 * amélioration de la sécurité des cookies: tout cookie correspond à un fichier de token local
-	 * sécurisation possible des données GET et POST
+	 * ajout 3.4 : 
+	 * bugfix de sécurité
 	*/	
 	@session_start();
 	// ------------------------------------------------------------------
@@ -55,15 +53,16 @@
 	if (!isset($auto_restrict['just_die_on_errors'])){				$auto_restrict['just_die_on_errors']=true;}// end script immediately instead of include loginform in case of user not logged;
 	if (!isset($auto_restrict['just_die_if_not_logged'])){			$auto_restrict['just_die_if_not_logged']=false;}// end script immediately instead of include loginform in case of banished ip or referer problem;
 	if (!isset($auto_restrict['tokens_expiration_delay'])){			$auto_restrict['tokens_expiration_delay']=3600;}//seconds
-	if (!isset($auto_restrict['kill_tokens_after_use'])){			$auto_restrict['kill_tokens_after_use']=true;}//false to allow the token to survive after it was used (for a form with multiple submits, like a preview button)
-	if (!isset($auto_restrict['use_GET_tokens_too'])){				$auto_restrict['use_GET_tokens_too']=false;}
+	if (!isset($auto_restrict['kill_tokens_after_use'])){			$auto_restrict['kill_tokens_after_use']=false;}//false to allow the token to survive after it was used (for a form with multiple submits, like a preview button)
+	if (!isset($auto_restrict['use_GET_tokens_too'])){				$auto_restrict['use_GET_tokens_too']=true;}
 	if (!isset($auto_restrict['use_ban_IP_on_token_errors'])){		$auto_restrict['use_ban_IP_on_token_errors']=true;}
 	if (!isset($auto_restrict['redirect_error'])){					$auto_restrict['redirect_error']='index.php';}// si précisé, pas de message d'erreur
+	if (!isset($auto_restrict['redirect_success'])){				$auto_restrict['redirect_success']='admin.php';}
 	if (!isset($auto_restrict['domain'])){							$auto_restrict['domain']=$_SERVER['SERVER_NAME'];}
-	if (!isset($auto_restrict['POST_striptags'])){					$auto_restrict['POST_striptags']=false;}// if true, all $_POST data will be strip_taged
-	if (!isset($auto_restrict['GET_striptags'])){					$auto_restrict['GET_striptags']=false;}// if true, all $_GET data will be strip_taged
-	if (!isset($auto_restrict['root'])){							$auto_restrict['root']='';}
-	if (!isset($auto_restrict['path_from_root'])){					$auto_restrict['path_from_root']=LIBS;}
+	if (!isset($auto_restrict['POST_striptags'])){					$auto_restrict['POST_striptags']=true;}// if true, all $_POST data will be strip_taged
+	if (!isset($auto_restrict['GET_striptags'])){					$auto_restrict['GET_striptags']=true;}// if true, all $_GET data will be strip_taged
+	if (!isset($auto_restrict['root'])){							$auto_restrict['root']='.';}
+	if (!isset($auto_restrict['path_from_root'])){					$auto_restrict['path_from_root']='';}
 	if (!empty($_SERVER['HTTP_REFERER'])){							$auto_restrict['referer']=returndomain($_SERVER['HTTP_REFERER']);}else{$auto_restrict['referer']='';}
 	$auto_restrict['path_to_my_folder']=$auto_restrict['root'].$auto_restrict['path_from_root'].'/';
 	$auto_restrict['path_to_files']=$auto_restrict['path_to_my_folder'].'auto_restrict_files';
@@ -116,15 +115,19 @@
 	// user tries to login
 	// ------------------------------------------------------------------	
 	if (isset($_POST['login'])&&isset($_POST['pass'])){
-		log_user($_POST['login'],$_POST['pass']);
-		if (isset($_POST['cookie'])){
+		if (log_user($_POST['login'],$_POST['pass']) && isset($_POST['cookie'])){
 			set_cookie();
 		}
+		// ------------------------------------------------------------------
+		// redirect if needed
+		// ------------------------------------------------------------------ 
+		if (!empty($auto_restrict['redirect_success'])){redirect_to($auto_restrict['redirect_success']);}
+
 	}
 	// ------------------------------------------------------------------
 	// user wants to logout (?logout $_GET var)
 	// ------------------------------------------------------------------	
-	if (isset($_GET['deconnexion'])||isset($_GET['logout'])){log_user('dis','connect');}
+	if (isset($_GET['deconnexion'])||isset($_GET['logout'])){@session_destroy();delete_cookie();exit_redirect();}
 	// ------------------------------------------------------------------	
 	// ------------------------------------------------------------------	
 	// if here, there's no login/logout process.
@@ -133,7 +136,7 @@
 	// on problem, out !
 	// ------------------------------------------------------------------
 	if (!is_ok()){
-		session_destroy();
+		@session_destroy();
 		if (!$auto_restrict['just_die_if_not_logged']){
 			include('login_form.php');
 		} else {
@@ -294,8 +297,9 @@
 	function delete_cookie(){
 		// delete cookie and token cookie file
 		global $auto_restrict;
+		@$token_cookie_file=$_COOKIE[$auto_restrict['cookie_name']];
 		setcookie($auto_restrict['cookie_name'],'',time()+1);		
-		unlink($auto_restrict['path_to_files'].'/'.$token_cookie);
+		@unlink($auto_restrict['path_to_files'].'/'.$token_cookie_file);
 	}
 	function checkCookie(){
 		// test cookie token file security access
@@ -382,6 +386,13 @@
 		$_SESSION[$token]=@date('U')+$auto_restrict['tokens_expiration_delay'];
 		if (!$token_only){echo '<input type="hidden" value="'.$token.'" name="token"/>';}
 		else {echo $token;}
+	}
+	// create a token, and return it
+	function returnToken(){
+		global $auto_restrict;
+		$token=hash('sha512',uniqid('',true));
+		$_SESSION[$token]=@date('U')+$auto_restrict['tokens_expiration_delay'];
+		return $token;
 	}
 
 
